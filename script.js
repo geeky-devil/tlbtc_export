@@ -55,52 +55,6 @@ async function getResponse(key) {
 			}
 			
 		}
-		// // read stream
-		// while(true){
-		// 	const {done,value} = await reader.read();
-		// 	if (done) break;
-			
-		// // 	// decode the chucks
-		// 	const chunk= decoder.decode(value);
-		// 	buffer+=chunk;
-		// 	console.log('Raw chunk :',chunk);	
-			
-		// 	const lines = buffer.split('\n');
-        
-		// 	// Process complete lines
-		// 	for (let i = 0; i < lines.length - 1; i++) {
-		// 		const line = lines[i];
-				
-		// 		// Only process lines starting with 'data: '
-		// 		if (line.startsWith('data: ')) {
-		// 			try {
-		// 				const cleanLine = line.replace(/^data: /, '').trim();
-						
-		// 				// Skip empty lines and '[DONE]'
-		// 				if (cleanLine && cleanLine !== '[DONE]') {
-		// 					const parsedLine = JSON.parse(cleanLine);
-		// 					console.log('Parsed Line', parsedLine);
-		// 					console.log("Generated Text",)
-		// 					// Process the parsed line as needed
-		// 				}
-		// 			} catch (error) {
-		// 				console.error('Parsing error:', error);
-		// 				console.log('Problematic line:', line);
-		// 			}
-		// 		}
-		// 	}
-		// 	buffer = lines[lines.length - 1];
-
-		//  	for ( const line of parsedLine){
-		//  	 	const {choices}= line;
-		//  	 	const {delta} = choices[0];
-		//  	 	const {content}=delta;
-		// 		if (content){
-		// 			console.log(content);
-		// 			window.aiResponse+=content;
-		// 		}
-		//  	}	
-		//}
 	} catch(error){
 		console.error('Stream error',error.message);
 	}
@@ -202,26 +156,23 @@ function startListening() {
  }
 
 // Text-to-Speech (TTS) Function
-function speak() {
-	console.log('tts called');
-	const text=aiResponse;
-	const utterance = new SpeechSynthesisUtterance(text);
-	utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
-	utterance.onstart = () => {
-		console.log('Started speaking');
-		window.ttsState = 'speaking';
-	};
-	
-	utterance.onend = () => {
-		console.log('Finished speaking');
-		window.ttsState = 'idle';
-	};
-	
-	utterance.onerror = (event) => {
-		console.error('TTS Error:', event.error);
-		window.ttsState = 'error';
-	};
-	speechSynthesis.speak(utterance);
+async function speak() {
+	console.log('TTS called');
+	const text=window.aiResponse;
+	const lines=text.split('.');
+	window.ttsState="speaking";
+	for (i=0; i<lines.length;i++){
+		await speakLine(lines[i]);
+	}
+	window.ttsState="idle";
+	async function speakLine(line){
+		const utterance = new SpeechSynthesisUtterance(line);
+		utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
+		window.speechSynthesis.speak(utterance);
+		return new Promise(resolve =>{
+			utterance.onend=resolve;
+		});
+	}
 }
 // Function to stop speaking
 function stopSpeaking() {
