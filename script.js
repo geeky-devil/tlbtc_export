@@ -310,7 +310,7 @@ async function loadCMUDict() {
   // Return formatted pronunciations for godot animation player
   function cmuLookup(word) {
 	var formattedPhonemes=[];
-	var pronunciation= cmuDict[word] || '';
+	var pronunciation= cmuDict[String(word).toUpperCase()] || '';
 	if (!pronunciation){
 	console.log("Word not in CMU dict!");
 	return;
