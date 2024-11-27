@@ -231,6 +231,10 @@ function startListening() {
 // Text-to-Speech (TTS) Function (called per line)
 async function speak() {
 	console.log('TTS called');
+	// if (txt){
+	// 	await speakLine(String(txt));
+	// 	return ;
+	// }
 	const text=window.aiResponse;
 	const lines=text.split('.');
 	window.ttsState="speaking";
@@ -246,6 +250,12 @@ async function speak() {
 			utterance.onend=resolve;
 		});
 	}
+}
+function speakWord(word){
+	const utterance = new SpeechSynthesisUtterance(String(word));
+	utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
+	window.speechSynthesis.speak(utterance);
+
 }
 // Function to stop speaking
 function stopSpeaking() {
@@ -295,13 +305,6 @@ async function loadCMUDict() {
 	  console.log('CMUdict loaded');
 	  window.cmuDict=cmuDict;
 
-	  // Example: Lookup a word
-	  const lookupWord = 'ABANDONED';
-	  if (cmuDict[lookupWord]) {
-		console.log(`Pronunciations for "${lookupWord}":`, cmuDict[lookupWord]);
-	  } else {
-		console.log(`${lookupWord} not found in the dictionary.`);
-	  }
 	} catch (error) {
 	  console.error('Error loading CMUdict:', error);
 	}
@@ -355,3 +358,4 @@ window.getResponse=getResponse;
 window.aiResponse=aiResponse;
 window.speak=speak;
 window.cmuLookup=cmuLookup;
+window.speakWord=speakWord;
