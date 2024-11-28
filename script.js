@@ -252,6 +252,8 @@ async function speak() {
 	}
 }
 function speakWord(word){
+	//var test=`My name is Optimus Prime`;
+	console.log('Uttering...');
 	const utterance = new SpeechSynthesisUtterance(String(word));
 	utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
 	window.speechSynthesis.speak(utterance);
@@ -280,7 +282,8 @@ function resumeSpeaking() {
 
  // Function to load the CMU dict
 async function loadCMUDict() {
-	var url='cmudict-0.7b';
+	//using formated dict
+	var url='f_cmudict-0.7b';
 	try {
 	  const response = await fetch(url);
 	  const text = await response.text();
@@ -290,7 +293,7 @@ async function loadCMUDict() {
 
 	  // Process each line of the .7b file
 	  text.split('\n').forEach(line => {
-		// Skip comments and empty lines
+		// Skip comments and empty lines (non need as dict is formated)
 		if (!line || line.startsWith(';;;')) return;
 
 		// Extract the word and its pronunciation(s)
@@ -298,7 +301,8 @@ async function loadCMUDict() {
 		if (word && pronunciation.length > 0) {
 		  // Add to the dictionary
 		  cmuDict[word] = cmuDict[word] || [];
-		  cmuDict[word].push(pronunciation.join(' '));
+		  cmuDict[word].push(pronunciation.filter((pronun)=> pronun!=""));
+		  //cmuDict[word].push(pronunciation.join(' '));
 		}
 	  });
 
@@ -312,39 +316,52 @@ async function loadCMUDict() {
 
   // Return formatted pronunciations for godot animation player
   function cmuLookup(word) {
-	var formattedPhonemes=[];
+	if (word=='.' || word ==',') return JSON.stringify(["M","M"]) ;
 	var pronunciation= cmuDict[String(word).toUpperCase()] || '';
+
 	if (!pronunciation){
-	console.log("Word not in CMU dict!");
-	return;
+	console.log("Word not in CMU dict!",word);
+	return ;
 	} 
 
-	text=String(pronunciation).toUpperCase();
-	text=text.trim();
-	var phonemes=text.split(' ');
-	phonemes.forEach(phoneme => {
-		if (phoneme.endsWith('0') || phoneme.endsWith('1') || phoneme.endsWith('2')){
-		var stress_num=phoneme.charAt(phoneme.length-1);
-		phoneme=phoneme.slice(0,-1);
-		formattedPhonemes.push(phoneme);
-		switch(stress_num){
-			case '1':
-				formattedPhonemes.push(phoneme);
-				return ;
-			case '2' :
-				formattedPhonemes.push(phoneme);
-				formattedPhonemes.push(phoneme);
-				return ;
-			}
-		}
-		else{
-			formattedPhonemes.push(phoneme);
-		}
-	});
-	console.log("formatted phonemes :",formattedPhonemes);
-	return JSON.stringify(formattedPhonemes);
+	return pronunciation;
+	//text=String(pronunciation).toUpperCase();
+	//text=text.trim();
+
+	// var phonemes=text.split(' ');
+	// phonemes.forEach(phoneme => {
+	// 	if (phoneme.endsWith('0') || phoneme.endsWith('1') || phoneme.endsWith('2')){
+	// 	var stress_num=phoneme.charAt(phoneme.length-1);
+	// 	phoneme=phoneme.slice(0,-1);
+	// 	formattedPhonemes.push(phoneme);
+	// 	switch(stress_num){
+	// 		case '1':
+	// 			formattedPhonemes.push(phoneme);
+	// 			return ;
+	// 		case '2' :
+	// 			formattedPhonemes.push(phoneme);
+	// 			formattedPhonemes.push(phoneme);
+	// 			return ;
+	// 		}
+	// 	}
+	// 	else{
+	// 		formattedPhonemes.push(phoneme);
+	// 	}
+	// });
+	//console.log("formatted phonemes :",formattedPhonemes);
+	//return JSON.stringify(formattedPhonemes);
 }
 
+function generateP(line){
+	var phonemes=[];
+	//var testLine=`My name is Optimus Prime`;
+	var words=String(line).split(' ');
+	words.forEach(word => {
+		phonemes.push.apply(phonemes,cmuLookup(word))	;
+	})
+	console.log('phonemes generated :',phonemes);
+	return JSON.stringify(phonemes.flat());
+}
 
 window.ttsState = ttsState;
 window.setupMicrophone = setupMicrophone;
@@ -359,3 +376,4 @@ window.aiResponse=aiResponse;
 window.speak=speak;
 window.cmuLookup=cmuLookup;
 window.speakWord=speakWord;
+window.generateP=generateP;
