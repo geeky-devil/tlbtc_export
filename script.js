@@ -7,6 +7,8 @@ let audioContext = new (window.AudioContext || window.webkitAudioContext)();
 let recognizedText = "";
 let aiResponse = "";
 let ttsState = 'idle';
+let sampletext=`My name is Optimus Prime, and I need help.
+The autobots have gone missing.`
 let prompt=`They Encounter a Monster and Must Make It Sleep by Telling It a Good Story to Come Through the Gate- Tone: Calm and encouraging, making the monster sound silly rather than scary.
 AI (whispering, smiling):- “Shhh… looks like we’ve got a sleepy monster here! It won’t let us through the gate until it hears a good story. Think you can help it drift off to dreamland?”
 Child Responses & AI Reactions:
@@ -229,14 +231,14 @@ function startListening() {
  }
 
 // Text-to-Speech (TTS) Function (called per line)
-async function speak() {
+async function speak(text) {
 	console.log('TTS called');
 	// if (txt){
 	// 	await speakLine(String(txt));
 	// 	return ;
 	// }
-	const text=window.aiResponse;
-	const lines=text.split('.');
+	//const text=window.aiResponse;
+	const lines=String(text).split('.');
 	window.ttsState="speaking";
 	for (i=0; i<lines.length;i++){
 		await speakLine(lines[i]);
@@ -316,8 +318,12 @@ async function loadCMUDict() {
 
   // Return formatted pronunciations for godot animation player
   function cmuLookup(word) {
-	if (word=='.' || word ==',') return JSON.stringify(["M","M"]) ;
-	var pronunciation= cmuDict[String(word).toUpperCase()] || '';
+	if (word.endsWith(',') || word.endsWith('?') || word.endsWith('!')) {
+		var pronun=cmuDict[String(word.slice(0,-1)).toUpperCase()] || '';
+		pronun.push.apply(pronun,["M","M"])
+		return pronun ;
+	}
+	var pronunciation = cmuDict[String(word).toUpperCase()] || '';
 
 	if (!pronunciation){
 	console.log("Word not in CMU dict!",word);
@@ -325,40 +331,26 @@ async function loadCMUDict() {
 	} 
 
 	return pronunciation;
-	//text=String(pronunciation).toUpperCase();
-	//text=text.trim();
-
-	// var phonemes=text.split(' ');
-	// phonemes.forEach(phoneme => {
-	// 	if (phoneme.endsWith('0') || phoneme.endsWith('1') || phoneme.endsWith('2')){
-	// 	var stress_num=phoneme.charAt(phoneme.length-1);
-	// 	phoneme=phoneme.slice(0,-1);
-	// 	formattedPhonemes.push(phoneme);
-	// 	switch(stress_num){
-	// 		case '1':
-	// 			formattedPhonemes.push(phoneme);
-	// 			return ;
-	// 		case '2' :
-	// 			formattedPhonemes.push(phoneme);
-	// 			formattedPhonemes.push(phoneme);
-	// 			return ;
-	// 		}
-	// 	}
-	// 	else{
-	// 		formattedPhonemes.push(phoneme);
-	// 	}
-	// });
-	//console.log("formatted phonemes :",formattedPhonemes);
-	//return JSON.stringify(formattedPhonemes);
 }
 
-function generateP(line){
+function generateP(text){
 	var phonemes=[];
-	//var testLine=`My name is Optimus Prime`;
-	var words=String(line).split(' ');
-	words.forEach(word => {
-		phonemes.push.apply(phonemes,cmuLookup(word))	;
-	})
+	var singleLines=text.replace(/\n/g, '');
+	var lines = singleLines.split('.').filter((x)=> x!='');
+	console.log(lines);
+	for (let line of lines){
+		console.log('LINE',line);	
+		const words=line.split(' ');
+		console.log(words);
+		words.forEach((word) => {
+			phonemes.push(...cmuLookup(word));
+		});
+
+		// add pause as TTS pauses after every line
+
+		//phonemes.push.apply(phonemes,["M","M","M"]);
+		phonemes.push(["M","M","M"]);
+	};
 	console.log('phonemes generated :',phonemes);
 	return JSON.stringify(phonemes.flat());
 }
