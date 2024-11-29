@@ -237,8 +237,7 @@ async function speak(text) {
 	// 	await speakLine(String(txt));
 	// 	return ;
 	// }
-	//const text=window.aiResponse;
-	const lines=String(text).split('.');
+	const lines=window.aiResponse.split('.');
 	window.ttsState="speaking";
 	for (i=0; i<lines.length;i++){
 		await speakLine(lines[i]);
@@ -318,24 +317,26 @@ async function loadCMUDict() {
 
   // Return formatted pronunciations for godot animation player
   function cmuLookup(word) {
+	if (!word) return ["M"];
 	if (word.endsWith(',') || word.endsWith('?') || word.endsWith('!')) {
 		var pronun=cmuDict[String(word.slice(0,-1)).toUpperCase()] || '';
-		pronun.push.apply(pronun,["M","M"])
+		if (word.endsWith('?')) return pronun;
+		pronun.push.apply(pronun,["M","M","M"]);
 		return pronun ;
 	}
 	var pronunciation = cmuDict[String(word).toUpperCase()] || '';
 
 	if (!pronunciation){
 	console.log("Word not in CMU dict!",word);
-	return ;
+	return ["M"];
 	} 
 
 	return pronunciation;
 }
 
-function generateP(text){
+function generateP(){
 	var phonemes=[];
-	var singleLines=text.replace(/\n/g, '');
+	var singleLines=window.aiResponse.replace(/\n/g, ' ');
 	var lines = singleLines.split('.').filter((x)=> x!='');
 	console.log(lines);
 	for (let line of lines){
