@@ -4,16 +4,25 @@ let mediaRecorder;
 let audioBlob;
 let audioURL;
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let voice=speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
-
+//let voice=speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
+let voice =speechSynthesis.getVoices[1];
 let ttsState = 'idle';
 let cmuDict = {};
 let sampletext=`My name is Optimus Prime, and I need help.
 The autobots have gone missing.`
+let sampletext2=`You know what's near the sky? The gate we're trying to get through. Do you think our sleepy monster friend might know why the sky is blue? Want to tell it a story about the sky instead? What would you like the story to be about?`;
+let sampletext3=`Hi Jack, let's create a story together. What would you like our story to be about? Don't worry if you need a little time to think, I'm excited to hear your ideas.`;
+let currentSample=sampletext2;
 //let phonemes=[];
 let lastViseme;
 
-//let LLM_worker=new Worker('llm_worker.js');
+/*
+Microsoft Heera : 1.40 (precise)
+Microsoft ravi : 1.60 ish
+Google US Eng : 2.20
+
+
+*/
 let prompt=`They Encounter a Monster and Must Make It Sleep by Telling It a Good Story to Come Through the Gate- Tone: Calm and encouraging, making the monster sound silly rather than scary.
 AI (whispering, smiling):- “Shhh… looks like we’ve got a sleepy monster here! It won’t let us through the gate until it hears a good story. Think you can help it drift off to dreamland?”
 Child Responses & AI Reactions:
@@ -124,7 +133,8 @@ async function getResponse(key) {
 	} catch(error){
 		console.error('Error calling llm',error.message);
 	} finally {
-		lastViseme = generateP(window.aiResponse);
+		//window.aiResponse=window.aiResponse.replace(/[?!]/g, '.');
+		phonemes = generateP(window.aiResponse);
 		speak();
 	}
 }
@@ -156,38 +166,44 @@ function playAudio() {
 	}
 }
 
+function testTTS() {
+	//window.aiResponse=`Hi John, let's create a story together! What would you like the story to be about?`;
+	window.aiResponse=currentSample;
+	//window.aiResponse=window.aiResponse.replace(/[?!]/g, '.');
+	phonemes=generateP(window.aiResponse);
+	speak();
+}
 
  async function speakLine(line){
 	 const utterance = new SpeechSynthesisUtterance(line);
 	 utterance.voice = voice;
 	 window.speechSynthesis.speak(utterance);
-	 if (!isSpeaking){
-		 utterance.onstart = () =>{
-			window.ttsState="speaking";
-			isSpeaking=true;
-			window.isSpeaking=true;
-			console.log('AI speaking'); 
-		}
+	 utterance.onstart = () =>{
+		window.ttsState="speaking";
+		isSpeaking=true;
+		window.isSpeaking=true;
+		console.log('AI speaking'); 
 	}
+	//  if (!isSpeaking){
+	// 	}
 	 return new Promise(resolve =>{
 		utterance.onend=resolve;
 	 });
  }
 
-function testTTS() {
-	phonemes=[];
-	window.aiResponse=`Hi John, let's create a story together! What would you like the story to be about?`;
-	window.visemes=generateP(window.aiResponse);
-	speak();
-	lastViseme= null;
-}
 
 // Text-to-Speech (TTS) Function (called per line)
 async function speak() {
-	window.visemes=lastViseme;
-	const lines=window.aiResponse.split('.');
+	
+	const lines=window.aiResponse.split('.').filter(x => x.trim() !== '');
+	
 	for (i=0; i<lines.length;i++){
+		window.visemes=JSON.stringify(phonemes[i]);
+		console.log('uttering for',window.visemes);
 		await speakLine(lines[i]);
+		console.log('Spoke a line');
+		isSpeaking=false;
+		window.isSpeaking=false;
 	}
 	window.ttsState="idle";
 	isSpeaking=false;
@@ -250,14 +266,13 @@ async function loadCMUDict() {
 
   // Return formatted pronunciations for godot animation player
   function cmuLookup(word) {
-	console.log('word :',word);
 	if (!word) return ["M"];
 	if (word.endsWith(',') || word.endsWith('?') || word.endsWith('!')) {
 		//console.log('Phonemes till now',phonemes);
 		var pronun=cmuDict[String(word.slice(0,-1)).toUpperCase()] || '';
-		if (word.endsWith('?')) return pronun;
+		//if (word.endsWith(',')) return [...pronun,"M","M","M"];
 		
-		return [...pronun,"M","M","M"] ;
+		return [...pronun,"M","M","M","M","M","M","M","M","M"]; //1200 * 2.2ms;
 	}
 	var pronunciation = cmuDict[String(word).toUpperCase()] || '';
 
@@ -271,32 +286,30 @@ async function loadCMUDict() {
 
 function generateP(response){
 	let phonemes=[];
-	var singleLines=response.replace(/\n/g, ' ');
-	var lines = singleLines.split('.').filter((x)=> x!='');
+	var lines=response.replace(/\n/g, '').split('.').filter(x=> x.trim() !=='');
 	console.log(lines);
 	for (let line of lines){
-		console.log('LINE',line);	
+		var pline=[];
 		const words=line.split(' ');
-		console.log('WORDS',words);
 		// words.forEach((word) => {
 		// 	phonemes.push(...cmuLookup(word));
 		// 	console.log('per word',phonemes);
 		// 	return;
 		// });
 		for (let word of words){
-			phonemes.push(...cmuLookup(word));
-			console.log('per word',phonemes);
+			pline.push(...cmuLookup(word));
 		};
-		console.log('per line ' ,phonemes);
+		//console.log('per line ' ,phonemes);
 
+		phonemes.push(pline.flat());
 		// add pause as TTS pauses after every line
 
 		//phonemes.push.apply(phonemes,["M","M","M"]);
-		phonemes.push("M","M","M");
+		//phonemes.push("M","M","M","M","M","M","M","M","M","M","M","M","M"); //1200ms delay (yikes!)
 	};
 	console.log('phonemes generated :',phonemes);
-	const tosend = JSON.stringify(phonemes.flat());
-	return tosend;	
+	return phonemes;
+		
 
 	// const message= MessageEvent('viseme',{
 	// 	data:visemeArr,
