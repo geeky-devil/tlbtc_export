@@ -49,6 +49,8 @@ Ask the child if they like the new story better, and redo the generation if they
 Reflection:
 Ask the child something like: “So remember the first story? Why didn't you like that as much as the new one?”. Use one or more turns to guide them and make them understand the first version was lacking a proper conflict and resolution. Do not end this section until the child has clearly understood this. Do not solve the problem for the child. Then say good bye.
 `
+let prompt2=`You are having a  casual conversation with a child. You ask simple question and express emotions based on the child's responses.  Begin your response with your emotion within {}. If there are multiple emotions,split the responses into lines making sure emotions stay at the beginning.
+Use the following following expressions : Excitement , Happiness , Curious, Sad , Angry.`;
 
 const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 recognition.lang = "en-US";
@@ -56,6 +58,7 @@ recognition.continuous = true;
 recognition.interimResults = true;
 window.isListening=true;
 let isSpeaking=false;
+let emotion;
 // Request microphone access and set up the recorder
 async function setupMicrophone() {
 	try {
@@ -83,6 +86,7 @@ async function setupMicrophone() {
 async function getResponse(key) {
 	var url="https://api.groq.com/openai/v1/chat/completions";
 	var model="llama-3.1-8b-instant";
+	model='llama3-8b-8192';
 	const api_key=String(key);
 	//var txt=window.recognizedText;
 	var txt = window.recognizedText;
@@ -99,7 +103,7 @@ async function getResponse(key) {
 			messages:[
 				{
 					role:"system",
-					content:prompt,
+					content:prompt2,
 				},
 				{
 					role:"user",
@@ -119,7 +123,7 @@ async function getResponse(key) {
 
 				const generatedText = data.choices[0].message.content;
 				console.log("Generated text:", generatedText);
-				window.aiResponse=generatedText;
+				window.aiResponse=extractEmotion(generatedText);
 				
 			} catch (e){
 				console.warn("response is stuctured differently",e);
@@ -139,6 +143,19 @@ async function getResponse(key) {
 	}
 }
 
+function extractEmotion(text) {
+	const emotionPattern = /^{(\w+)}\s*/; // Matches text starting with {emotion}
+	const match = text.match(emotionPattern);
+  
+	if (match) {
+	  emotion = match[1]; // Extracted emotion
+	  const strippedText = text.replace(emotionPattern, ''); // Remove emotion from text
+	  return strippedText;
+	}
+	emotion ='NONE';
+  
+	return strippedText; // No emotion found
+  }
 // Start recording audio
 function startRecording() {
 	if (mediaRecorder && mediaRecorder.state === "inactive") {
@@ -169,7 +186,7 @@ function playAudio() {
 function testTTS() {
 	//window.aiResponse=`Hi John, let's create a story together! What would you like the story to be about?`;
 	window.aiResponse=currentSample;
-	//window.aiResponse=window.aiResponse.replace(/[?!]/g, '.');
+	//window.aiResponse=window.aiResponse.replace(/[?]/g, '?.');
 	phonemes=generateP(window.aiResponse);
 	speak();
 }
@@ -196,9 +213,11 @@ function testTTS() {
 async function speak() {
 	
 	const lines=window.aiResponse.split('.').filter(x => x.trim() !== '');
+	console.log('Speaking these',lines);
 	
 	for (i=0; i<lines.length;i++){
 		window.visemes=JSON.stringify(phonemes[i]);
+		console.log("AI is ", emotion);
 		console.log('uttering for',window.visemes);
 		await speakLine(lines[i]);
 		console.log('Spoke a line');
@@ -270,7 +289,7 @@ async function loadCMUDict() {
 	if (word.endsWith(',') || word.endsWith('?') || word.endsWith('!')) {
 		//console.log('Phonemes till now',phonemes);
 		var pronun=cmuDict[String(word.slice(0,-1)).toUpperCase()] || '';
-		//if (word.endsWith(',')) return [...pronun,"M","M","M"];
+		//if (word.endsWith('?')) return ["M"];
 		
 		return [...pronun,"M","M","M","M","M","M","M","M","M"]; //1200 * 2.2ms;
 	}
@@ -287,7 +306,7 @@ async function loadCMUDict() {
 function generateP(response){
 	let phonemes=[];
 	var lines=response.replace(/\n/g, '').split('.').filter(x=> x.trim() !=='');
-	console.log(lines);
+	console.log('Lines for p',lines);
 	for (let line of lines){
 		var pline=[];
 		const words=line.split(' ');
