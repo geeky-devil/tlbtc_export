@@ -4,11 +4,16 @@ let mediaRecorder;
 let audioBlob;
 let audioURL;
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let recognizedText = "";
-let aiResponse = "";
+let voice=speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
+
 let ttsState = 'idle';
+let cmuDict = {};
 let sampletext=`My name is Optimus Prime, and I need help.
 The autobots have gone missing.`
+//let phonemes=[];
+let lastViseme;
+
+//let LLM_worker=new Worker('llm_worker.js');
 let prompt=`They Encounter a Monster and Must Make It Sleep by Telling It a Good Story to Come Through the Gate- Tone: Calm and encouraging, making the monster sound silly rather than scary.
 AI (whispering, smiling):- “Shhh… looks like we’ve got a sleepy monster here! It won’t let us through the gate until it hears a good story. Think you can help it drift off to dreamland?”
 Child Responses & AI Reactions:
@@ -35,12 +40,43 @@ Ask the child if they like the new story better, and redo the generation if they
 Reflection:
 Ask the child something like: “So remember the first story? Why didn't you like that as much as the new one?”. Use one or more turns to guide them and make them understand the first version was lacking a proper conflict and resolution. Do not end this section until the child has clearly understood this. Do not solve the problem for the child. Then say good bye.
 `
+
+const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognition.lang = "en-US";
+recognition.continuous = true;
+recognition.interimResults = true;
+window.isListening=true;
+let isSpeaking=false;
+// Request microphone access and set up the recorder
+async function setupMicrophone() {
+	try {
+		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		mediaRecorder = new MediaRecorder(stream);
+		
+		mediaRecorder.ondataavailable = function(event) {
+			audioChunks.push(event.data);
+		};
+		
+		mediaRecorder.onstop = function() {
+			audioBlob = new Blob(audioChunks, { 'type' : 'audio/wav; codecs=opus' });
+			audioURL = URL.createObjectURL(audioBlob);
+			audioChunks = [];
+		};
+		
+		console.log("Microphone setup complete.");
+	} catch (error) {
+		console.error("Error accessing microphone:", error);
+	}
+}
+
+
 // Call llm via fetch
 async function getResponse(key) {
 	var url="https://api.groq.com/openai/v1/chat/completions";
-	var txt=recognizedText;
 	var model="llama-3.1-8b-instant";
-	var api_key=String(key);
+	const api_key=String(key);
+	//var txt=window.recognizedText;
+	var txt = window.recognizedText;
 	//console.log("received key",api_key);
 	try {
 	const response = await fetch(url, {
@@ -66,93 +102,30 @@ async function getResponse(key) {
 		})
 	});
 		const data = await response.json();
-		//console.log('Raw json', data,key);
+
 		if (response.ok){
-			aiResponse="";
-			//google studio api
-			//const generatedText = data.candidates[0].content.parts[0].text; 
+			console.log('REsponse OK')
+			window.aiResponse="";
 			try {
 
 				const generatedText = data.choices[0].message.content;
 				console.log("Generated text:", generatedText);
-				aiResponse=generatedText;
-				window.aiResponse=aiResponse;
-				return generatedText;
+				window.aiResponse=generatedText;
+				
 			} catch (e){
-				console.warn("response is stuctured differently");
-				return 'CHECK FORMAT';
+				console.warn("response is stuctured differently",e);
 			}
 			
 		}
-		// // read stream
-		// while(true){
-		// 	const {done,value} = await reader.read();
-		// 	if (done) break;
-			
-		// // 	// decode the chucks
-		// 	const chunk= decoder.decode(value);
-		// 	buffer+=chunk;
-		// 	console.log('Raw chunk :',chunk);	
-			
-		// 	const lines = buffer.split('\n');
-        
-		// 	// Process complete lines
-		// 	for (let i = 0; i < lines.length - 1; i++) {
-		// 		const line = lines[i];
-				
-		// 		// Only process lines starting with 'data: '
-		// 		if (line.startsWith('data: ')) {
-		// 			try {
-		// 				const cleanLine = line.replace(/^data: /, '').trim();
-						
-		// 				// Skip empty lines and '[DONE]'
-		// 				if (cleanLine && cleanLine !== '[DONE]') {
-		// 					const parsedLine = JSON.parse(cleanLine);
-		// 					console.log('Parsed Line', parsedLine);
-		// 					console.log("Generated Text",)
-		// 					// Process the parsed line as needed
-		// 				}
-		// 			} catch (error) {
-		// 				console.error('Parsing error:', error);
-		// 				console.log('Problematic line:', line);
-		// 			}
-		// 		}
-		// 	}
-		// 	buffer = lines[lines.length - 1];
-
-		//  	for ( const line of parsedLine){
-		//  	 	const {choices}= line;
-		//  	 	const {delta} = choices[0];
-		//  	 	const {content}=delta;
-		// 		if (content){
-		// 			console.log(content);
-		// 			window.aiResponse+=content;
-		// 		}
-		//  	}	
-		//}
+		else{
+			console.log('error',response,api_key);
+		}
+	
 	} catch(error){
-		console.error('Stream error',error.message);
-	}
-}
-// Request microphone access and set up the recorder
-async function setupMicrophone() {
-	try {
-		const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-		mediaRecorder = new MediaRecorder(stream);
-		
-		mediaRecorder.ondataavailable = function(event) {
-			audioChunks.push(event.data);
-		};
-		
-		mediaRecorder.onstop = function() {
-			audioBlob = new Blob(audioChunks, { 'type' : 'audio/wav; codecs=opus' });
-			audioURL = URL.createObjectURL(audioBlob);
-			audioChunks = [];
-		};
-		
-		console.log("Microphone setup complete.");
-	} catch (error) {
-		console.error("Error accessing microphone:", error);
+		console.error('Error calling llm',error.message);
+	} finally {
+		lastViseme = generateP(window.aiResponse);
+		speak();
 	}
 }
 
@@ -184,82 +157,45 @@ function playAudio() {
 }
 
 
-// Convert recorded audio to text (STT)
-
-const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-recognition.lang = "en-US";
-recognition.continuous = true;
-recognition.interimResults = true;
-window.isListening=true;
-
-function startListening() {
-	recognition.onstart = function() {
-		console.log("Speech recognition started");
-		window.recognitionState = 'listening';
-	};
-	
-	recognition.onend = function() {
-		console.log("Speech recognition ended");
-		window.recognitionState = 'idle';
-		// If Button is still held down
-		if (window.isListening) recognition.start();
-	};
-	
-	recognition.onresult = function(event) {
-		//recognizedText = event.results[0][0].transcript;
-		//console.log("Recognized Text:", recognizedText);
-		recognizedText = "";               // Clear previous results for fresh display
-		for (let i = 0; i < event.results.length; i++) {
-			recognizedText += event.results[i][0].transcript;
+ async function speakLine(line){
+	 const utterance = new SpeechSynthesisUtterance(line);
+	 utterance.voice = voice;
+	 window.speechSynthesis.speak(utterance);
+	 if (!isSpeaking){
+		 utterance.onstart = () =>{
+			window.ttsState="speaking";
+			isSpeaking=true;
+			window.isSpeaking=true;
+			console.log('AI speaking'); 
 		}
-		console.log("Recognized Text (real-time):", recognizedText);
-		window.recognizedText = recognizedText;
-		
-	};
-	
-	recognition.onerror = function(event) {
-		console.error("Speech recognition error:", event.error);
-		window.recognitionState = 'error';
-	};
-
-	recognition.start();
-}
-
- function stopListening(){
-	recognition.stop();
-	window.isListening=false;
+	}
+	 return new Promise(resolve =>{
+		utterance.onend=resolve;
+	 });
  }
 
+function testTTS() {
+	phonemes=[];
+	window.aiResponse=`Hi John, let's create a story together! What would you like the story to be about?`;
+	window.visemes=generateP(window.aiResponse);
+	speak();
+	lastViseme= null;
+}
+
 // Text-to-Speech (TTS) Function (called per line)
-async function speak(text) {
-	console.log('TTS called');
-	// if (txt){
-	// 	await speakLine(String(txt));
-	// 	return ;
-	// }
+async function speak() {
+	window.visemes=lastViseme;
 	const lines=window.aiResponse.split('.');
-	window.ttsState="speaking";
 	for (i=0; i<lines.length;i++){
 		await speakLine(lines[i]);
 	}
 	window.ttsState="idle";
-	async function speakLine(line){
-		const utterance = new SpeechSynthesisUtterance(line);
-		utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
-		window.speechSynthesis.speak(utterance);
-		return new Promise(resolve =>{
-			utterance.onend=resolve;
-		});
-	}
+	isSpeaking=false;
+	window.isSpeaking=false;	
+	window.visemes=[];
+	console.log('AI stopped speaking');
 }
-function speakWord(word){
-	//var test=`My name is Optimus Prime`;
-	console.log('Uttering...');
-	const utterance = new SpeechSynthesisUtterance(String(word));
-	utterance.voice = speechSynthesis.getVoices().find(voice => voice.name === "Google US English") || speechSynthesis.getVoices()[0];
-	window.speechSynthesis.speak(utterance);
 
-}
 // Function to stop speaking
 function stopSpeaking() {
 	const synth = window.speechSynthesis;
@@ -280,8 +216,7 @@ function resumeSpeaking() {
 	synth.resume();
 	window.ttsState = 'speaking';
 }
-
- // Function to load the CMU dict
+// Function to load the CMU dict
 async function loadCMUDict() {
 	//using formated dict
 	var url='f_cmudict-0.7b';
@@ -290,7 +225,6 @@ async function loadCMUDict() {
 	  const text = await response.text();
 
 	  // Initialize an empty dictionary object
-	  const cmuDict = {};
 
 	  // Process each line of the .7b file
 	  text.split('\n').forEach(line => {
@@ -308,7 +242,6 @@ async function loadCMUDict() {
 	  });
 
 	  console.log('CMUdict loaded');
-	  window.cmuDict=cmuDict;
 
 	} catch (error) {
 	  console.error('Error loading CMUdict:', error);
@@ -317,12 +250,14 @@ async function loadCMUDict() {
 
   // Return formatted pronunciations for godot animation player
   function cmuLookup(word) {
+	console.log('word :',word);
 	if (!word) return ["M"];
 	if (word.endsWith(',') || word.endsWith('?') || word.endsWith('!')) {
+		//console.log('Phonemes till now',phonemes);
 		var pronun=cmuDict[String(word.slice(0,-1)).toUpperCase()] || '';
 		if (word.endsWith('?')) return pronun;
-		pronun.push.apply(pronun,["M","M","M"]);
-		return pronun ;
+		
+		return [...pronun,"M","M","M"] ;
 	}
 	var pronunciation = cmuDict[String(word).toUpperCase()] || '';
 
@@ -334,27 +269,43 @@ async function loadCMUDict() {
 	return pronunciation;
 }
 
-function generateP(){
-	var phonemes=[];
-	var singleLines=window.aiResponse.replace(/\n/g, ' ');
+function generateP(response){
+	let phonemes=[];
+	var singleLines=response.replace(/\n/g, ' ');
 	var lines = singleLines.split('.').filter((x)=> x!='');
 	console.log(lines);
 	for (let line of lines){
 		console.log('LINE',line);	
 		const words=line.split(' ');
-		console.log(words);
-		words.forEach((word) => {
+		console.log('WORDS',words);
+		// words.forEach((word) => {
+		// 	phonemes.push(...cmuLookup(word));
+		// 	console.log('per word',phonemes);
+		// 	return;
+		// });
+		for (let word of words){
 			phonemes.push(...cmuLookup(word));
-		});
+			console.log('per word',phonemes);
+		};
+		console.log('per line ' ,phonemes);
 
 		// add pause as TTS pauses after every line
 
 		//phonemes.push.apply(phonemes,["M","M","M"]);
-		phonemes.push(["M","M","M"]);
+		phonemes.push("M","M","M");
 	};
 	console.log('phonemes generated :',phonemes);
-	return JSON.stringify(phonemes.flat());
+	const tosend = JSON.stringify(phonemes.flat());
+	return tosend;	
+
+	// const message= MessageEvent('viseme',{
+	// 	data:visemeArr,
+	// })
+
+	//postMessage({type:'viseme',data:visemeArr});
 }
+
+loadCMUDict();
 
 window.ttsState = ttsState;
 window.setupMicrophone = setupMicrophone;
@@ -365,8 +316,7 @@ window.startListening = startListening;
 window.stopListening=stopListening;
 window.recognizedText = recognizedText;
 window.getResponse=getResponse; 
-window.aiResponse=aiResponse;
 window.speak=speak;
-window.cmuLookup=cmuLookup;
-window.speakWord=speakWord;
-window.generateP=generateP;
+window.visemes=lastViseme;
+window.isSpeaking=isSpeaking;
+window.testTTS=testTTS;

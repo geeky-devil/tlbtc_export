@@ -79,6 +79,52 @@ body {
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 <script src="script.js"> </script>
+<script>
+let aiResponse="";
+let recognizedText = ""; 
+function startListening() {
+	recognition.onstart = function() {
+		console.log("Speech recognition started");
+		window.recognitionState = 'listening';
+	};
+	
+	recognition.onend = function() {
+		console.log("Speech recognition ended");
+		window.recognitionState = 'idle';
+		// If Button is still held down
+		if (window.isListening) recognition.start();
+	};
+	
+	recognition.onresult = function(event) {
+		//recognizedText = event.results[0][0].transcript;
+		//console.log("Recognized Text:", recognizedText);
+		recognizedText = "";               // Clear previous results for fresh display
+		for (let i = 0; i < event.results.length; i++) {
+			recognizedText += event.results[i][0].transcript;
+		}
+		console.log("Recognized Text (real-time):", recognizedText);
+		window.recognizedText = recognizedText;
+		
+	};
+	
+	recognition.onerror = function(event) {
+		console.error("Speech recognition error:", event.error);
+		window.recognitionState = 'error';
+	};
+
+	recognition.start();
+}
+
+ function stopListening(){
+	recognition.stop();
+	window.isListening=false;
+ }
+ 
+window.startListening = startListening;
+window.stopListening=stopListening;
+window.recognizedText = recognizedText;
+window.aiResponse=aiResponse;
+</script>
 	</head>
 	<body>
 		<canvas id="canvas">
@@ -97,7 +143,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6116608,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6116704,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
