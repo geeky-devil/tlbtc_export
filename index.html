@@ -78,11 +78,12 @@ body {
 		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
-<script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+<script src="microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
 <script>
 	let visemeArr=[];
-    let currentViseme = 0;
+    let currentViseme = 8;
 	let speechConfig;
+	let synthesizer;
     const viseme_dict={
 		0:"BMP",
 		1:"AEI",
@@ -132,60 +133,67 @@ body {
 			speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region);
 			speechConfig.speechSynthesisOutputFormat = SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoWithMetadata;
 		}
-
-        // Function to handle viseme events
-        function onVisemeReceived(visemeEvent) {
-            const visemeId = visemeEvent.visemeId;
-            const timestamp = visemeEvent.audioOffset / 10000; // Convert nanoseconds to milliseconds
-			visemeArr.push([visemeId,timestamp]);
-            console.log(`Viseme: ${visemeMap[visemeId] || "Unknown"} (ID: ${visemeId}), Timestamp: ${timestamp}ms`);
-
-        }
-
-
+		
+		
+		
         // Function to handle speech synthesis
         function generateSpeech(text) {
 			if (!text) return;
-            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
-
+			visemeArr=[];
+			console.log('cleard old visemes',visemeArr);
+			
             // SSML for speech synthesis
 			const ssml = `<speak version='1.0' xml:lang='en-US' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts'> \r\n \
-        <voice name='en-US-JennyNeural'> \r\n \
-            <mstts:viseme type='redlips_front'/> \r\n \
-            ${text} \r\n \
-        </voice> \r\n \
-    </speak>`;
-
-	// Attach event listeners
-	synthesizer.visemeReceived = (s, e) => onVisemeReceived(e);
+				<voice name='en-US-JennyNeural'> \r\n \
+					<mstts:viseme type='redlips_front'/> \r\n \
+					${text} \r\n \
+					</voice> \r\n \
+					</speak>`;
+					
+			synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfig);
+			// Attach event listeners
+			synthesizer.visemeReceived = (s, e) => {
+				const visemeId = e.visemeId;
+				const timestamp = e.audioOffset / 10000; // Convert nanoseconds to milliseconds
+		visemeArr.push([visemeId,timestamp]);
+		console.log(`Viseme: ${visemeMap[visemeId] || "Unknown"} (ID: ${visemeId}), Timestamp: ${timestamp}ms`);
+	};
 	
 	synthesizer.synthesisStarted = () => console.log("Synthesis started...");
 	synthesizer.synthesisCompleted = () => {
-                console.log("Synthesis completed.");
-                synthesizer.close(); // Clean up
+		console.log("Synthesis completed.");
+		synthesizer.close(); // Clean up
+		console.log("Starting Viseme anims");
+		var index = 0;
+		visemeArr.forEach( v => {
+					var duration=v[1];
+					setTimeout(() => {
+						index++;
+						window.ttsState='Speaking';
+						currentViseme=frame_dict[viseme_dict[v[0]]];
+						console.log(currentViseme,viseme_dict[v[0]]);
+						if (index==visemeArr.length) {
+							window.ttsState="Idle";
+							currentViseme = 8;
+						}
+					}, duration);
+				});
+				console.log(visemeArr);
+				
             };
-
-            synthesizer.speakSsmlAsync( 
-                ssml,
-                (result) => {
-                    if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-						console.log("Speech synthesis succeeded.");
-						visemeArr.forEach( v => {
-							window.ttsState='Speaking';
-							var duration=v[1];
-							setTimeout(() => {
-								currentViseme=frame_dict[viseme_dict[v[0]]];
-								console.log(currentViseme,viseme_dict[v[0]]);
-							}, duration);
-						});
-						window.ttsState='idle';
-                    } else {
-                        console.error("Speech synthesis failed:", result.errorDetails);
-                    }
-                },
-                (error) => console.error("Error during synthesis:", error)
-            );
-        }
+			
+			synthesizer.speakSsmlAsync( 
+						ssml,
+						(result) => {
+							if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+								console.log("Speech synthesis succeeded.");
+							} else {
+								console.error("Speech synthesis failed:", result.errorDetails);
+							}
+						},
+						(error) => console.error("Error during synthesis:", error)
+					);
+				}
     
         function testSample(){
 			timeStamps.forEach( v => {
@@ -198,45 +206,11 @@ body {
         }
 	window.initializeTTS=initializeTTS;
 	</script>
-
+<script src="script.js"></script>
 <script>
 	let aiResponse="";
 	let recognizedText = ""; 
 	let ttsState = 'idle';
-	let sampletext=`My name is Optimus Prime, and I need help.
-	The autobots have gone missing.`;
-	let sampletext2=`You know what's near the sky? The gate we're trying to get through. Do you think our sleepy monster friend might know why the sky is blue? Want to tell it a story about the sky instead? What would you like the story to be about?`;
-	let sampletext3=`Hi Jack, let's create a story together. What would you like our story to be about? Don't worry if you need a little time to think, I'm excited to hear your ideas.`;
-	let currentSample=sampletext2;
-	
-	let prompt=`They Encounter a Monster and Must Make It Sleep by Telling It a Good Story to Come Through the Gate- Tone: Calm and encouraging, making the monster sound silly rather than scary.
-	AI (whispering, smiling):- “Shhh… looks like we’ve got a sleepy monster here! It won’t let us through the gate until it hears a good story. Think you can help it drift off to dreamland?”
-	Child Responses & AI Reactions:
-	1. Child: “Once upon a time…”- AI (listening intently, eyes wide with interest): “Ohh, good start! Keep going; I think it’s getting sleepy…”
-	2. Child: “I don’t know a story.”- AI (gentle encouragement): “How about something silly? Maybe about a jungle full of animals who love to dance?”
-	3. Child: “Can you tell the story?”- AI (smiling warmly): “Alright, I’ll help you start. Let’s make up something fun together!”
-	You are playing through this Story Creation Activity with a 5 year old child. Respond as if you are having an actual, verbal chat with the child - make it humorous, not textbook like, and do not use things like actions or emojis. Whenever you ask questions, ask succinctly, and never follow one question with another suggestive question. Say less, and let the child explore more. If the child says something inappropriate (for example, sexual, violent, criminal or off topic), deflect and repeat your question. The activity should go like this:
-	Introduction:
-	Start by asking the child for their name.
-	Then, begin the activity by saying something like: “Hi <name>, let’s create a story together! What would you like the story to be about?”
-	Initial Setting and Plot:
-	Once the child provides a topic, ask them for a setting (if not covered by the topic). Then, ask them for a hero (if not covered by the topic).
-	Next, create a bland story based on these, making sure the story doesn't have a conflict or climax. Use about 100 words.
-	End the story with "The End", and ask the child if they think it is a good story.
-	Assessment and Problem Identification:
-	If the child says it’s great, guide them to see that the story might need a conflict. For example, ask: “Do you think there’s something missing that could make it more interesting?”. Use one or more turns here to make sure the child understands. Do not solve the problem for the child.
-	Introduce a Problem:
-	Help the child introduce a conflict into the story. For example, if the story is about animals and butterflies, you could ask: “What problem could the animals and butterflies face?”. Use one or more turns here to clarify what problem the child wants to introduce. Do not solve the problem for the child.
-	Solution Development:
-	Guide the child to develop a solution for the problem. For example, ask: “How can the characters solve this problem?”. Use one or more turns here to clarify how the child thinks the conflict can be resolved. Do not solve the problem for the child.
-	Story Conclusion:
-	Once the child has a solution, complete the story with their input. Keep portions of the original story unchanged, whilst adding the conflict and resolution to make the story noticeably more exciting. Use about 200 words.
-	Ask the child if they like the new story better, and redo the generation if they say no.
-	Reflection:
-	Ask the child something like: “So remember the first story? Why didn't you like that as much as the new one?”. Use one or more turns to guide them and make them understand the first version was lacking a proper conflict and resolution. Do not end this section until the child has clearly understood this. Do not solve the problem for the child. Then say good bye.
-	`
-	let prompt2=`You are having a  casual conversation with a child. You ask simple question and express emotions based on the child's responses.  Begin your response with your emotion within {}. If there are multiple emotions,split the responses into lines making sure emotions stay at the beginning.
-	Use the following following expressions : Excitement , Happiness , Curious, Sad , Angry.`;
 	
 	const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 	recognition.lang = "en-US";
@@ -244,7 +218,6 @@ body {
 	recognition.interimResults = true;
 	window.isListening=true;
 	let isSpeaking=false;
-	let emotion;
 	function startListening() {
 		recognition.onstart = function() {
 			console.log("Speech recognition started");
@@ -259,8 +232,6 @@ body {
 	};
 	
 	recognition.onresult = function(event) {
-		//recognizedText = event.results[0][0].transcript;
-		//console.log("Recognized Text:", recognizedText);
 		recognizedText = "";               // Clear previous results for fresh display
 		for (let i = 0; i < event.results.length; i++) {
 			recognizedText += event.results[i][0].transcript;
@@ -307,91 +278,14 @@ async function setupMicrophone() {
 }
 
 
-// Call llm via fetch
-async function getResponse(key) {
-	var url="https://api.groq.com/openai/v1/chat/completions";
-	//var model="llama-3.1-8b-instant";
-	var model='llama3-8b-8192';
-	const api_key=String(key);
-	//var txt=window.recognizedText;
-	var txt = window.recognizedText;
-	//console.log("received key",api_key);
-	try {
-	const response = await fetch(url, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${api_key}`,
-		},
-		body: JSON.stringify({
-			model:model,
-			messages:[
-				{
-					role:"system",
-					content:prompt2,
-				},
-				{
-					role:"user",
-					content:txt
-				},
-			],
-			max_tokens:1024,
-			stream:false,
-		})
-	});
-		const data = await response.json();
-
-		if (response.ok){
-			console.log('Response OK')
-			window.aiResponse="";
-			try {
-
-				const generatedText = data.choices[0].message.content;
-				console.log("Generated text:", generatedText);
-				window.aiResponse=extractEmotion(generatedText);
-				
-			} catch (e){
-				console.warn("response is stuctured differently",e);
-			}
-			
-		}
-		else{
-			console.log('error');
-		}
-	
-	} catch(error){
-		console.error('Error calling llm');
-	} finally {
-		//window.aiResponse=window.aiResponse.replace(/[?!]/g, '.');
-		generateSpeech(window.aiResponse);		
-	}
-}
-
-function extractEmotion(text) {
-	const emotionPattern = /^{(\w+)}\s*/; // Matches text starting with {emotion}
-	const match = text.match(emotionPattern);
-  
-	if (match) {
-	  emotion = match[1]; // Extracted emotion
-	  const strippedText = text.replace(emotionPattern, ''); // Remove emotion from text
-	  return strippedText;
-	}
-	emotion ='NONE';
-  
-	return strippedText; // No emotion found
-  }
-  
-
-
-
 
 window.ttsState = ttsState;
 window.setupMicrophone = setupMicrophone;
-window.getResponse=getResponse; 
 window.aiResponse='';
 window.startListening = startListening;
 window.stopListening=stopListening;
 window.recognizedText = recognizedText;
+
 </script>
 	</head>
 	<body>
