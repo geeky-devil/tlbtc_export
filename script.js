@@ -123,3 +123,7 @@ function extractEmotion(text) {
   }
   
 window.getResponse=getResponse; 
+
+function testTTS(text){
+	generateSpeech(text);
+}

@@ -17308,6 +17308,7 @@ class SpeakerAudioDestination {
     write(buffer, cb, err) {
         if (this.privAudioBuffer !== undefined) {
             this.privAudioBuffer.push(buffer);
+            console.log('Pushed data to buffer,17311');
             this.updateSourceBuffer().then(() => {
                 if (!!cb) {
                     cb();
@@ -17320,12 +17321,15 @@ class SpeakerAudioDestination {
         }
         else if (this.privAudioOutputStream !== undefined) {
             this.privAudioOutputStream.write(buffer);
+            console.log('Wrote to buffer,17324');
             this.privBytesReceived += buffer.byteLength;
         }
     }
     close(cb, err) {
         this.privIsClosed = true;
         if (this.privSourceBuffer !== undefined) {
+            console.log('closing buffer,17330');
+           
             this.handleSourceBufferUpdateEnd().then(() => {
                 if (!!cb) {
                     cb();
@@ -17390,6 +17394,7 @@ class SpeakerAudioDestination {
                 this.privAudio.src = URL.createObjectURL(this.privMediaSource);
                 this.privAudio.load();
                 this.privMediaSource.onsourceopen = () => {
+                    console.log('Source opened,17395');
                     this.privMediaSourceOpened = true;
                     this.privMediaSource.duration = MediaDurationPlaceholderSeconds;
                     this.privSourceBuffer = this.privMediaSource.addSourceBuffer(mimeType);
@@ -17410,6 +17415,10 @@ class SpeakerAudioDestination {
                 this.updateSourceBuffer().catch((reason) => {
                     Exports_js_1.Events.instance.onEvent(new Exports_js_1.BackgroundEvent(reason));
                 });
+                this.privAudio.onplay= () => {
+                    console.log('On play triggered'); //This is it
+                    window.playViseme();
+                } 
             }
             else {
                 // eslint-disable-next-line no-console
@@ -17451,6 +17460,7 @@ class SpeakerAudioDestination {
         if (!this.privIsPaused && this.privAudio !== undefined) {
             this.privAudio.pause();
             this.privIsPaused = true;
+            console.log('Audio paused');
         }
     }
     resume(cb, err) {
@@ -17496,17 +17506,20 @@ class SpeakerAudioDestination {
         }
     }
     async notifyPlayback() {
-        if (!this.privPlaybackStarted && this.privAudio !== undefined) {
+        if (!this.privPlaybackStarted && this.privAudio !== undefined && visemesReceived) {
             this.privPlaybackStarted = true;
             if (!!this.onAudioStart) {
                 this.onAudioStart(this);
             }
             this.privAudio.onended = () => {
+                console.log('Audio Ended');
+                visemesReceived=false;
                 if (!!this.onAudioEnd) {
                     this.onAudioEnd(this);
                 }
             };
             if (!this.privIsPaused) {
+                console.log('playing via play,17518')//
                 await this.privAudio.play();
             }
         }
@@ -25658,6 +25671,7 @@ class SynthesisAdapterBase {
                         break;
                     case "audio.metadata":
                         const metadataList = Exports_js_3.SynthesisAudioMetadata.fromJSON(connectionMessage.textBody).Metadata;
+                        console.log(metadataList,'25672');
                         for (const metadata of metadataList) {
                             switch (metadata.Type) {
                                 case Exports_js_3.MetadataType.WordBoundary:
@@ -25682,6 +25696,8 @@ class SynthesisAdapterBase {
                                     this.onAvatarEvent(metadata);
                                     break;
                                 case Exports_js_3.MetadataType.SessionEnd:
+                                    visemesReceived=true;
+                                    console.log('All visemes received');
                                     this.privSynthesisTurn.onSessionEnd(metadata);
                                     break;
                             }

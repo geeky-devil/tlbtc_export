@@ -81,6 +81,7 @@ body {
 <script src="microsoft.cognitiveservices.speech.sdk.bundle.js"></script>
 <script>
 	let visemeArr=[];
+	let visemesReceived=false;
     let currentViseme = 8;
 	let speechConfig;
 	let synthesizer;
@@ -163,22 +164,22 @@ body {
 	synthesizer.synthesisCompleted = () => {
 		console.log("Synthesis completed.");
 		synthesizer.close(); // Clean up
-		console.log("Starting Viseme anims");
-		var index = 0;
-		visemeArr.forEach( v => {
-					var duration=v[1];
-					setTimeout(() => {
-						index++;
-						window.ttsState='Speaking';
-						currentViseme=frame_dict[viseme_dict[v[0]]];
-						console.log(currentViseme,viseme_dict[v[0]]);
-						if (index==visemeArr.length) {
-							window.ttsState="Idle";
-							currentViseme = 8;
-						}
-					}, duration);
-				});
-				console.log(visemeArr);
+		// console.log("Starting Viseme anims");
+		// var index = 0;
+		// visemeArr.forEach( v => {
+		// 			var duration=v[1];
+		// 			setTimeout(() => {
+		// 				index++;
+		// 				window.ttsState='Speaking';
+		// 				currentViseme=frame_dict[viseme_dict[v[0]]];
+		// 				console.log(currentViseme,viseme_dict[v[0]]);
+		// 				if (index==visemeArr.length) {
+		// 					window.ttsState="Idle";
+		// 					currentViseme = 8;
+		// 				}
+		// 			}, duration);
+		// 		});
+		// 		console.log(visemeArr);
 				
             };
 			
@@ -204,7 +205,27 @@ body {
                 }, duration);
             })
         }
+
+	async function playViseme() {
+		console.log("Starting Viseme anims");
+		var index = 0;
+		visemeArr.forEach( v => {
+			var duration=v[1];
+			setTimeout(() => {
+				index++;
+				window.ttsState='Speaking';
+				currentViseme=frame_dict[viseme_dict[v[0]]];
+				console.log(currentViseme,viseme_dict[v[0]]);
+				if (index==visemeArr.length) {
+					window.ttsState="Idle";
+					currentViseme = 8;
+				}
+			}, duration);
+		});
+		console.log(visemeArr);
+	}
 	window.initializeTTS=initializeTTS;
+	window.playViseme=playViseme;
 	</script>
 <script src="script.js"></script>
 <script>
