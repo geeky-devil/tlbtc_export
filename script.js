@@ -117,7 +117,7 @@ async function getResponse(key) {
 		console.error('Error calling llm',error.message,window.recognizedText);
 	} finally {
 		//window.aiResponse=window.aiResponse.replace(/[?!]/g, '.');
-		//generateSpeech(window.aiResponse);		
+		generateSpeech(window.aiResponse);		
 		
 	}
 }
