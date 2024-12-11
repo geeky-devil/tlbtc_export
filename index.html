@@ -82,7 +82,7 @@ body {
 <script>
 	let visemeArr=[];
 	let visemesReceived=false;
-    let currentViseme = 8;
+    let currentViseme = 1;
 	let speechConfig;
 	let synthesizer;
     const viseme_dict={
@@ -110,20 +110,20 @@ body {
 		21:"BMP",
 	};
 
-    const frame_dict = {
-        "CHJSH":0,
-        "TH":1,
-        "WQ":2,
-        "L":3,
-        "CDNS":4,
-        "U":5,
-        "O":6,
-        "FV":7,
-        "BMP":8,
-        "AEI":9,
-        "R":10,
-        "EE":11,
-		"GK":4
+     const frame_dict = {
+        "CHJSH":3,
+        "TH":10,
+        "WQ":8,
+        "L":6,
+        "CDNS":2,
+        "U":11,
+        "O":7,
+        "FV":5,
+        "BMP":1,
+        "AEI":0,
+        "R":9,
+        "EE":4,
+		"GK":2
     }
 		function initializeTTS(key) {
 			// Azure Speech Service credentials
@@ -164,23 +164,6 @@ body {
 	synthesizer.synthesisCompleted = () => {
 		console.log("Synthesis completed.");
 		synthesizer.close(); // Clean up
-		// console.log("Starting Viseme anims");
-		// var index = 0;
-		// visemeArr.forEach( v => {
-		// 			var duration=v[1];
-		// 			setTimeout(() => {
-		// 				index++;
-		// 				window.ttsState='Speaking';
-		// 				currentViseme=frame_dict[viseme_dict[v[0]]];
-		// 				console.log(currentViseme,viseme_dict[v[0]]);
-		// 				if (index==visemeArr.length) {
-		// 					window.ttsState="Idle";
-		// 					currentViseme = 8;
-		// 				}
-		// 			}, duration);
-		// 		});
-		// 		console.log(visemeArr);
-				
             };
 			
 			synthesizer.speakSsmlAsync( 
@@ -218,7 +201,7 @@ body {
 				console.log(currentViseme,viseme_dict[v[0]]);
 				if (index==visemeArr.length) {
 					window.ttsState="Idle";
-					currentViseme = 8;
+					currentViseme = 1;
 				}
 			}, duration);
 		});
@@ -301,6 +284,7 @@ async function setupMicrophone() {
 
 
 window.ttsState = ttsState;
+window.state = state;
 window.setupMicrophone = setupMicrophone;
 window.aiResponse='';
 window.startListening = startListening;
@@ -326,7 +310,7 @@ window.recognizedText = recognizedText;
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6117168,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":47878736,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
