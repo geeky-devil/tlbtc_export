@@ -26,8 +26,10 @@ Once the child has a solution, complete the story with their input. Keep portion
 Ask the child if they like the new story better, and redo the generation if they say no.
 Reflection [4]:
 Ask the child something like: “So remember the first story? Why didn't you like that as much as the new one?”. Use one or more turns to guide them and make them understand the first version was lacking a proper conflict and resolution. Do not end this section until the child has clearly understood this. Do not solve the problem for the child. Then say good bye.
-End [5]:
-When the child says Goodbye or the conversation has ended.
+End_1 [5]:
+The child successfully completes the activity and the conversation has ended.
+End_2 [6]:
+The conversation refuses to participate and the conversation has ended.
 
 Here is a sample :
 They Encounter a Monster and Must Make It Sleep by Telling It a Good Story to Come Through the Gate- Tone: Calm and encouraging, making the monster sound silly rather than scary.

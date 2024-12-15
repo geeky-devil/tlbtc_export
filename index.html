@@ -133,6 +133,7 @@ body {
 			// Initialize Speech SDK configuration
 			speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region);
 			speechConfig.speechSynthesisOutputFormat = SpeechSDK.SpeechSynthesisOutputFormat.Audio24Khz160KBitRateMonoWithMetadata;
+			console.log('config_done');
 		}
 		
 		
@@ -200,8 +201,9 @@ body {
 				currentViseme=frame_dict[viseme_dict[v[0]]];
 				console.log(currentViseme,viseme_dict[v[0]]);
 				if (index==visemeArr.length) {
-					window.ttsState="Idle";
+					window.ttsState="idle";
 					currentViseme = 1;
+					if (state==5 || state==6) window.act_over = true;
 				}
 			}, duration);
 		});
@@ -310,7 +312,7 @@ window.recognizedText = recognizedText;
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":47878736,"index.wasm":35376909},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":48344304,"index.wasm":1620216},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
