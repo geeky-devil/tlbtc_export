@@ -204,7 +204,11 @@ body {
 					window.ttsState="idle";
 					currentViseme = 1;
 					if (state==5 || state==6) window.act_over = true;
+					else {
+						emotion = 'neutral';
+					}
 				}
+				
 			}, duration);
 		});
 		console.log(visemeArr);
@@ -312,7 +316,7 @@ window.recognizedText = recognizedText;
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":48354816,"index.wasm":1620216},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":48386864,"index.wasm":1620216},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

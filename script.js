@@ -211,7 +211,7 @@ async function getResponse(key) {
 				const generatedJson = JSON.parse(data.choices[0].message.content);
 				console.log("Generated text:", generatedJson);
 				window.aiResponse=generatedJson.text;
-				emotion=generatedJson.emotion;
+				emotion=generatedJson.emotion.toLowerCase();
 				state=generatedJson.state;
 				window.state=state;
 				console.log('emotion',emotion);
@@ -263,7 +263,6 @@ function chat(text){
 
 function resetChat(){
 	window.aiResponse = '';
-	
 	msgs=[
 		{
 			role:"system",
@@ -275,7 +274,8 @@ function resetChat(){
 	window.act_over=false;
 	emotion = 'neutral';
 	window.recognizedText = '';
-	}
+	console.log('Chat reset');
+}
 
 function selectPrompt1(){
 	prompt_index=0;
