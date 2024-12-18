@@ -151,6 +151,15 @@ Questions:
 6. Self-Reflection:
 7. "Can you think of a time when you felt one of these emotions? How did you handle it?"
 AI: "Great job reflecting on Lily's day! Remember, it's okay to feel all kinds of emotions, and there are always ways to manage them."
+
+Provide a state (integer) after every turn to keep track of the conversation.
+The states are as follows :
+state 0 : The conversation has NOT finished.
+state 5 : The child successfully completes the activity and the conversation has ended.
+state 6 : The child denies participation and the convestation has ended.
+
+Provide the response in JSON format as follows:
+{'emotion':'happy','text':'Hi there.','state': 0}
 `;
 const prompts=[prompt1,prompt2,prompt3];
 let prompt_index = 0;
