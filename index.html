@@ -142,7 +142,7 @@ body {
         function generateSpeech(text) {
 			if (!text) return;
 			visemeArr=[];
-			console.log('cleard old visemes',visemeArr);
+			//console.log('cleard old visemes',visemeArr);
 			
             // SSML for speech synthesis
 			const ssml = `<speak version='1.0' xml:lang='en-US' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts'> \r\n \
@@ -199,11 +199,11 @@ body {
 				index++;
 				window.ttsState='Speaking';
 				currentViseme=frame_dict[viseme_dict[v[0]]];
-				console.log(currentViseme,viseme_dict[v[0]]);
+				//console.log(currentViseme,viseme_dict[v[0]]);
 				if (index==visemeArr.length) {
 					window.ttsState="idle";
 					currentViseme = 1;
-					if (state==5 || state==6) window.act_over = true;
+					if (state==1 || state==2) window.act_over = true;
 					else {
 						emotion = 'neutral';
 					}
@@ -211,7 +211,7 @@ body {
 				
 			}, duration);
 		});
-		console.log(visemeArr);
+		//console.log(visemeArr);
 	}
 	window.initializeTTS=initializeTTS;
 	window.playViseme=playViseme;
@@ -316,7 +316,7 @@ window.recognizedText = recognizedText;
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":48386928,"index.wasm":1620216},"focusCanvas":true,"gdextensionLibs":[]};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":54748176,"index.wasm":1620216},"focusCanvas":true,"gdextensionLibs":[]};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
