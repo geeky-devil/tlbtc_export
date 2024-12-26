@@ -109,10 +109,6 @@ const models=['llama-3.3-70b-versatile','llama3-70b-8192','llama-3.1-8b-instant'
 // after each converstation append msgs to transcript
 
 let msgs=[
-	{
-		role:"system",
-		content:prompts[prompt_index]+emotionPrompt
-	}
 ];
 
 // Store ip addr
@@ -226,7 +222,13 @@ async function getResponse(key) {
 		},
 		body: JSON.stringify({
 			model:model,
-			messages:msgs,
+			messages:[
+				{
+					role:"system",
+					content:contextPrompt+transcript+prompts[prompt_index]+emotionPrompt
+				},
+				...msgs
+			],
 			max_tokens:1024,
 			response_format:{"type": "json_object"},
 			stream:false,
@@ -249,6 +251,11 @@ async function getResponse(key) {
 				console.log('text',window.aiResponse);
 				console.log('state',generatedJson.state);
 				msgs.push({role:"assistant",content:window.aiResponse});
+				if (state==1){
+					transcript+='\n'+prompts[prompt_index]+JSON.stringify(...msgs)+'\n';
+					console.log(transcript);
+					console.log(contextPrompt+JSON.parse(transcript)+prompts[prompt_index]+emotionPrompt) //to do
+				}
 				
 			} catch (e){
 				console.warn("response is stuctured differently",e);
@@ -256,7 +263,7 @@ async function getResponse(key) {
 			
 		}
 		else{
-			console.log('error',response.error,);
+			console.log('error',response,);
 		}
 	
 	} catch(error){
@@ -281,10 +288,6 @@ function chat(text){
 function resetChat(){
 	window.aiResponse = '';
 	msgs=[
-		{
-			role:"system",
-			content:prompts[prompt_index]+emotionPrompt
-		}
 	];
 	state=0;
 	window.state=state;
